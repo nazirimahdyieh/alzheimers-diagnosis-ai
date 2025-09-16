@@ -1,0 +1,104 @@
+## Step 1: CatBoost
+
+[5 rows x 35 columns]
+accuracy=  0.958139534883721
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.96      0.97      0.97       278
+           1       0.95      0.93      0.94       152
+
+    accuracy                           0.96       430
+   macro avg       0.96      0.95      0.95       430
+weighted avg       0.96      0.96      0.96       430
+...
+----------------------------------------------------------------------------------------------------------------
+## Step 2: LightGBM + XGBoost
+
+=== LightGBM ===
+Accuracy: 0.9558139534883721
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.97      0.96      0.97       278
+           1       0.93      0.94      0.94       152
+
+    accuracy                           0.96       430
+   macro avg       0.95      0.95      0.95       430
+weighted avg       0.96      0.96      0.96       430
+
+
+=== XGBoost ===
+Accuracy: 0.9674418604651163
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.98      0.97      0.97       278
+           1       0.95      0.96      0.95       152
+
+    accuracy                           0.97       430
+   macro avg       0.96      0.97      0.96       430
+weighted avg       0.97      0.97      0.97       430
+...
+---------------------------------------------------------------------------------------------
+## Step 3: TabNet
+
+Accuracy: 0.9186046511627907
+Confusion Matrix:
+ [[268  10]
+ [ 25 127]]
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.91      0.96      0.94       278
+           1       0.93      0.84      0.88       152
+
+    accuracy                           0.92       430
+   macro avg       0.92      0.90      0.91       430
+weighted avg       0.92      0.92      0.92       430
+
+...
+---------------------------------------------------------------------------------
+## Step 4: Stacking
+Accuracy: 0.9488372093023256
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.96      0.96      0.96       278
+           1       0.93      0.92      0.93       152
+
+    accuracy                           0.95       430
+   macro avg       0.95      0.94      0.94       430
+weighted avg       0.95      0.95      0.95       430
+
+
+Confusion Matrix:
+ [[268  10]
+ [ 12 140]]
+--------------------------------------------------------------------------
+
+=== Comparison Table ===
+                    Accuracy  Precision    Recall  F1-Score
+Model                                                      
+Stage 1 - CatBoost  0.948837   0.948726  0.948837  0.948759
+Stage 2 - LightGBM  0.953488   0.953381  0.953488  0.953344
+Stage 2 - XGBoost   0.944186   0.944063  0.944186  0.943922
+Stage 3 - TabNet    0.900000   0.899860  0.900000  0.899925
+Stage 4 - Stacking  0.948837   0.948726  0.948837  0.948759
+
+----------------------------------------------------------------------------
+
+#BEST RESULT
+Best accuracy: 0.9649122807017544
+              precision    recall  f1-score   support
+
+           0       0.98      0.93      0.95        43
+           1       0.96      0.99      0.97        71
+
+    accuracy                           0.96       114
+   macro avg       0.97      0.96      0.96       114
+weighted avg       0.97      0.96      0.96       114

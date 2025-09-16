@@ -1,0 +1,256 @@
+###step1_catboost.py:
+
+
+!pip install catboost scikit-learn pandas matplotlib seaborn --quiet
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import accuracy_score, classification_report
+from catboost import CatBoostClassifier
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Step 1: Load the dataset
+data_path = "/kaggle/input/alzheimers-disease-dataset/alzheimers_disease_data.csv"
+df = pd.read_csv(data_path)
+
+print("Dataset shape:", df.shape)
+print("First 5 rows:\n", df.head())
+
+# Step 2: Data preprocessing
+# Assume target column is 'Diagnosis' and the rest are features
+X = df.drop('Diagnosis', axis=1)
+y = df['Diagnosis']
+
+# Encode categorical features if they exist
+for col in X.select_dtypes(include=['object']).columns:
+    le = LabelEncoder()
+    X[col] = le.fit_transform(X[col])
+
+# Standardize numerical features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Split into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Step 3: Build and train CatBoost model
+model = CatBoostClassifier(verbose=0, random_state=42)
+model.fit(X_train, y_train)
+
+# Step 4: Evaluate the model
+y_pred = model.predict(X_test)
+print("Model Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+--------------------------------------------------------------------------------------------------
+
+###step2_lgbm_xgb
+
+# Step 1: Install libraries (if not already installed)
+!pip install lightgbm xgboost --quiet
+
+import lightgbm as lgb
+import xgboost as xgb
+from sklearn.metrics import accuracy_score, classification_report
+
+# --------------------------
+# LightGBM
+# --------------------------
+lgb_model = lgb.LGBMClassifier(random_state=42)
+lgb_model.fit(X_train, y_train)
+
+y_pred_lgb = lgb_model.predict(X_test)
+print("=== LightGBM ===")
+print("Accuracy:", accuracy_score(y_test, y_pred_lgb))
+print("\nClassification Report:\n", classification_report(y_test, y_pred_lgb))
+
+# --------------------------
+# XGBoost
+# --------------------------
+xgb_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', random_state=42)
+xgb_model.fit(X_train, y_train)
+
+y_pred_xgb = xgb_model.predict(X_test)
+print("=== XGBoost ===")
+print("Accuracy:", accuracy_score(y_test, y_pred_xgb))
+print("\nClassification Report:\n", classification_report(y_test, y_pred_xgb))
+
+
+------------------------------------------------------------------------------------------------
+
+###step3_tabnet
+# third
+# Install TabNet package (if not already installed)
+!pip install pytorch-tabnet --quiet
+
+# Import libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from pytorch_tabnet.tab_model import TabNetClassifier
+from torch.optim import Adam
+from torch.optim.lr_scheduler import StepLR
+import numpy as np
+import kagglehub
+
+# Dataset path
+path = kagglehub.dataset_download("rabieelkharoua/alzheimers-disease-dataset")
+print("Path to dataset files:", path)
+
+# Load dataset
+df = pd.read_csv(path + '/alzheimers_disease_data.csv')
+print(df.columns)
+print(df.head())
+
+# Define target and features
+target = 'Diagnosis'  # target column
+features = [col for col in df.columns if col not in [target, 'PatientID', 'DoctorInCharge']]
+
+X = df[features].values
+y = df[target].values
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Encode labels if necessary
+if y_train.dtype == object:
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    y_test = le.transform(y_test)
+
+# Define TabNet model
+tabnet_clf = TabNetClassifier(
+    n_d=32, n_a=32, n_steps=5,
+    gamma=1.5, n_independent=2, n_shared=2,
+    optimizer_fn=Adam,
+    optimizer_params=dict(lr=2e-2),
+    scheduler_fn=StepLR,
+    scheduler_params={"step_size": 50, "gamma": 0.9},
+    mask_type='entmax'
+)
+
+# Train model
+tabnet_clf.fit(
+    X_train, y_train,
+    eval_set=[(X_test, y_test)],
+    eval_name=['test'],
+    max_epochs=200,
+    patience=20,
+    batch_size=128,
+    virtual_batch_size=32
+)
+
+# Prediction and evaluation
+y_pred = tabnet_clf.predict(X_test)
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("Classification Report:\n", classification_report(y_test, y_pred))
+---------------------------------------------------------------------------------------
+
+###step4_stacking
+
+# fourth
+# Install necessary packages (if not already installed)
+!pip install scikit-learn catboost lightgbm --quiet
+
+# Import libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier, StackingClassifier
+from sklearn.linear_model import LogisticRegression
+from catboost import CatBoostClassifier
+import lightgbm as lgb
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+# CSV file path
+data_path = '/kaggle/input/alzheimers-disease-dataset/alzheimers_disease_data.csv'
+
+# Load dataset
+df = pd.read_csv(data_path)
+
+# Define features and target
+X = df.drop(['PatientID', 'Diagnosis', 'DoctorInCharge'], axis=1)
+y = df['Diagnosis']
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Feature scaling
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Define base models for stacking
+estimators = [
+    ('catboost', CatBoostClassifier(verbose=0, random_state=42)),
+    ('lgbm', lgb.LGBMClassifier(random_state=42)),
+    ('rf', RandomForestClassifier(n_estimators=100, random_state=42))
+]
+
+# Final stacking model
+stack_model = StackingClassifier(
+    estimators=estimators,
+    final_estimator=LogisticRegression(),
+    passthrough=True
+)
+
+# Train stacking model
+stack_model.fit(X_train_scaled, y_train)
+
+# Predict on test data
+y_pred = stack_model.predict(X_test_scaled)
+
+# Evaluate model
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+-----------------------------------------------------------------------------------------------
+####Best Model
+
+# Install CatBoost if not already installed
+!pip install catboost scikit-learn pandas
+
+# Import libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from catboost import CatBoostClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+# Example using the Breast Cancer dataset
+from sklearn.datasets import load_breast_cancer
+data = load_breast_cancer()
+X = pd.DataFrame(data.data, columns=data.feature_names)
+y = pd.Series(data.target)
+
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Define the CatBoost model with the best parameters
+catboost_model = CatBoostClassifier(
+    iterations=302,
+    depth=5,
+    learning_rate=0.062385654133236906,
+    l2_leaf_reg=9.986348330425963,
+    verbose=0  # Disable log output
+)
+
+# Train the model
+catboost_model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = catboost_model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print("Best accuracy:", accuracy)
+print(classification_report(y_test, y_pred))
+
